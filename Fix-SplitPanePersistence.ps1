@@ -66,7 +66,7 @@ function Write-Log {
         [string]$Message,
         [switch]$Verbose
     )
-    if ($Verbose -and -not $VerbosePreference -eq 'Continue') { return }
+    if ($Verbose -and $VerbosePreference -ne 'Continue') { return }
     $prefix = if ($WhatIfPreference) { "[DryRun] " } else { "" }
     Write-Host "$prefix$Message"
 }
@@ -158,8 +158,9 @@ function Fix-ProfileOMPInit {
     
     if (-not (Test-Path $ProfilePath)) { return $false }
     
-    $content = Get-Content $ProfilePath -Raw
-    if (-not $content) { $content = "" }
+    try {
+        $content = Get-Content $ProfilePath -Raw -ErrorAction Stop
+        if (-not $content) { $content = "" }
     $originalContent = $content
     $modified = $false
 
@@ -208,12 +209,17 @@ function Fix-ProfileOMPInit {
 
     if ($modified -and $content -ne $originalContent) {
         if ($PSCmdlet.ShouldProcess($ProfilePath, "Update profile")) {
-            Set-Content -Path $ProfilePath -Value $content -NoNewline
+            Set-Content -Path $ProfilePath -Value $content -ErrorAction Stop
             $script:ChangesMode = $true
         }
         return $true
     }
     return $false
+    }
+    catch {
+        Write-Log "Error updating profile: $_"
+        return $false
+    }
 }
 
 function Get-UserThemePath {
