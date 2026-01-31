@@ -596,6 +596,52 @@ Set-Alias -Name spc -Value Split-Copilot
     }
 }
 
+# Step 8: Check WSL profiles for the Ubuntu.exe bug
+if ($terminalSettings) {
+    try {
+        $settings = Get-Content $terminalSettings -Raw | ConvertFrom-Json
+        $wslProfiles = $settings.profiles.list | Where-Object { 
+            $_.source -like "*WSL*" -or $_.source -like "*Ubuntu*" -or $_.name -like "*Ubuntu*" -or $_.name -like "*WSL*"
+        }
+        
+        foreach ($wslProfile in $wslProfiles) {
+            $needsFix = $false
+            $distroName = $null
+            
+            # Check if using default launcher (no commandline) or Ubuntu.exe
+            if (-not $wslProfile.commandline -or $wslProfile.commandline -match 'Ubuntu.*\.exe') {
+                $needsFix = $true
+                
+                # Try to extract distro name from profile
+                if ($wslProfile.name -match 'Ubuntu[- ]?(\d+\.\d+)?') {
+                    # Get actual distro name from wsl -l
+                    $wslList = wsl -l -q 2>$null | Where-Object { $_ -match 'Ubuntu' } | Select-Object -First 1
+                    if ($wslList) {
+                        $distroName = $wslList.Trim()
+                    }
+                }
+            }
+            
+            if ($needsFix -and $distroName) {
+                Write-Host ""
+                Write-Host "  WSL Profile Issue Detected!" -ForegroundColor Yellow
+                Write-Host "  Profile '$($wslProfile.name)' may not preserve directory on split." -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "  The default Ubuntu launcher doesn't pass the working directory." -ForegroundColor Gray
+                Write-Host "  To fix, change the profile's Command line to:" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "    wsl.exe -d $distroName" -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "  See: https://github.com/microsoft/terminal/issues/3158" -ForegroundColor Gray
+                Write-Host ""
+            }
+        }
+    }
+    catch {
+        # Silently ignore WSL detection errors
+    }
+}
+
 # Summary
 if ($WhatIfPreference) {
     Write-Log "Dry run complete - no changes were made"
