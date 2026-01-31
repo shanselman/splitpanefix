@@ -139,12 +139,20 @@ The Windows Terminal keybindings configured by this script work for WSL profiles
 
 ### Option 1: Oh My Posh in WSL (recommended)
 
-If you use Oh My Posh in both PowerShell and WSL, you can share the same theme file. The theme already has `pwd: osc99` after running this script.
+If you use Oh My Posh in WSL, just make sure your theme has `pwd: osc99` at the root level:
 
-Add to your `~/.bashrc`:
+```json
+{
+  "version": 4,
+  "pwd": "osc99",
+  ...
+}
+```
+
+Then init it in `~/.bashrc`:
 
 ```bash
-eval "$(oh-my-posh init bash --config '/mnt/c/Users/YOUR_USERNAME/path/to/theme.omp.json')"
+eval "$(oh-my-posh init bash --config '~/your-theme.omp.json')"
 ```
 
 Oh My Posh automatically handles the `wslpath` conversion for you.
