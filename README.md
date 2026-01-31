@@ -31,6 +31,9 @@ This script configures three things to work together:
 #   Alt+Shift+-    → horizontal split (same directory)
 #   Alt+Shift++    → vertical split (same directory)
 #   Ctrl+Shift+D   → duplicate tab (same directory)
+
+# Optional: Add GitHub Copilot CLI keybinding
+.\Fix-SplitPanePersistence.ps1 -Copilot
 #   Ctrl+Shift+.   → split + GitHub Copilot CLI
 ```
 
@@ -55,9 +58,22 @@ This script configures three things to work together:
 | `Alt+Shift+-` | Split pane horizontally (same directory) |
 | `Alt+Shift++` | Split pane vertically (same directory) |
 | `Ctrl+Shift+D` | Duplicate tab (same directory) |
+
+> **Note:** These are Windows Terminal's default shortcuts. The script updates them to use `splitMode: duplicate` so they preserve your directory. If you've customized these keybindings, the script will update your existing bindings rather than creating duplicates. Your other custom actions are preserved.
+
+### Bonus: GitHub Copilot CLI Integration
+
+Run with `-Copilot` to add an extra keybinding:
+
+```powershell
+.\Fix-SplitPanePersistence.ps1 -Copilot
+```
+
+| Shortcut | Action |
+|----------|--------|
 | `Ctrl+Shift+.` | Split pane + launch GitHub Copilot CLI |
 
-> **Note:** These are Windows Terminal's default shortcuts (except Copilot). The script updates them to use `splitMode: duplicate` so they preserve your directory. If you've customized these keybindings, the script will update your existing bindings rather than creating duplicates. Your other custom actions are preserved.
+This splits your terminal and opens the [GitHub Copilot CLI](https://github.com/github/gh-copilot) in your current directory.
 
 ## Why This Should Be the Default
 
@@ -82,6 +98,7 @@ The `splitMode: duplicate` setting in Windows Terminal keybindings tells it to u
 | `-WhatIf` | Dry run mode. Shows what would change without modifying anything. |
 | `-Verbose` | Detailed logging of all operations. |
 | `-ThemePath` | Custom directory for user-writable themes (default: `%LOCALAPPDATA%\oh-my-posh\themes`). |
+| `-Copilot` | Adds a keybinding (`Ctrl+Shift+.`) to split pane and launch GitHub Copilot CLI. |
 
 ## Safety Features
 

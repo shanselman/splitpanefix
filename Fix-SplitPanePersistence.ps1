@@ -17,16 +17,23 @@
 .PARAMETER ThemePath
     Optional custom path for the user-writable theme directory.
 
+.PARAMETER Copilot
+    Adds a keybinding (Ctrl+Shift+.) to split pane and launch GitHub Copilot CLI.
+
 .EXAMPLE
     .\Fix-SplitPanePersistence.ps1
     
 .EXAMPLE
     .\Fix-SplitPanePersistence.ps1 -WhatIf -Verbose
+
+.EXAMPLE
+    .\Fix-SplitPanePersistence.ps1 -Copilot
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$ThemePath
+    [string]$ThemePath,
+    [switch]$Copilot
 )
 
 $script:ChangesMode = $false
@@ -345,8 +352,12 @@ function Update-TerminalActions {
                 command = @{
                     action = 'duplicateTab'
                 }
-            },
-            @{
+            }
+        )
+        
+        # Add Copilot keybinding if requested
+        if ($Copilot) {
+            $desiredActions += @{
                 keys = 'ctrl+shift+.'
                 command = @{
                     action = 'splitPane'
@@ -355,7 +366,8 @@ function Update-TerminalActions {
                     commandline = 'pwsh -NoExit -Command "copilot"'
                 }
             }
-        )
+            Write-Log "Including Copilot keybinding (Ctrl+Shift+.)" -Verbose
+        }
         
         $modified = $false
         
