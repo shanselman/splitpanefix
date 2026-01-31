@@ -352,7 +352,7 @@ function Update-TerminalActions {
                     action = 'splitPane'
                     split = 'auto'
                     splitMode = 'duplicate'
-                    commandline = 'pwsh -NoExit -Command "gh copilot"'
+                    commandline = 'pwsh -NoExit -Command "copilot"'
                 }
             }
         )
