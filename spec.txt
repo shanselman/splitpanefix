@@ -1,0 +1,110 @@
+Specification for Script: PowerShell + Oh My Posh + Windows Terminal Directory Persistence
+Goals and Scope
+
+Detect or create the user’s PowerShell profile.
+Ensure Oh My Posh is initialized correctly in the profile.
+Ensure the active Oh My Posh theme enables directory persistence via setting: "pwd": "osc99".
+Update Windows Terminal settings so split panes and duplicate tabs inherit the current working directory.
+All operations must be idempotent and safe with backups.
+Target environment: Windows 11, PowerShell 7+, Windows Terminal, Oh My Posh v11+.
+
+Inputs and Outputs
+Inputs: None required. Optional: -WhatIf, -Verbose, -ThemePath.
+Outputs: Log messages and backup files.
+Side effects: Writes to the PowerShell profile, OMP theme, and Windows Terminal settings.
+File Discovery Rules
+PowerShell profile path: use $PROFILE.
+Oh My Posh detection: check Get-Command oh-my-posh.
+Theme path detection: parse the init line in the profile, reading the --config value.
+If theme is inside $env:POSH_THEMES_PATH, copy it to a user-writable folder before editing.
+Windows Terminal settings.json: check both packaged and unpackaged locations under LocalState.
+Safety and Backups
+Every file that will be modified must be backed up with a timestamp suffix.
+Example: settings.json.bak-YYYYMMDD-HHMMSS.
+All operations must be safe to run repeatedly without duplication or corruption.
+Functional Requirements
+
+PowerShell Profile Management
+
+
+If the profile does not exist, create it and its parent directory.
+Detect any custom “function prompt { ... }” blocks that override oh-my-posh. Back up the profile, then comment out these blocks with clear markers, unless the script is run with a "safe only" mode where these are left untouched.
+Ensure the profile contains exactly one oh-my-posh init line in the form:
+oh-my-posh init pwsh --config '<themepath>' | Invoke-Expression</themepath>
+If the init line is missing, append it.
+If multiple init lines exist, comment out all but the first.
+
+
+Oh My Posh Theme Modification
+
+
+Resolve the active theme path from the profile.
+If the theme lives in the built-in themes folder, copy it to a user-writable directory under LocalAppData\oh-my-posh\themes and use the copied path instead.
+Parse the theme JSON and ensure that the root object contains:
+"pwd": "osc99"
+If "pwd" exists but is not "osc99", update it.
+Write the updated JSON back to the theme file.
+
+
+Windows Terminal Settings Update
+
+
+Locate settings.json.
+Parse the JSON and update (or create) the actions array containing:
+Horizontal split: alt+shift+- with action splitPane, split horizontal, splitMode duplicate.
+Vertical split: alt+shift+plus with split vertical and splitMode duplicate.
+Duplicate tab: ctrl+shift+d with action duplicateTab.
+If these actions already exist but do not use splitMode duplicate, update them.
+Preserve all other actions and settings.
+Write the JSON back.
+
+
+Logging Rules
+
+
+Default logs are minimal (starting, updated files, done).
+Verbose logs include file paths, backups created, and details of changes.
+
+
+Dry Run Mode
+
+
+With -WhatIf or -DryRun, no changes are written. The script must print which files would be touched and what actions would be taken.
+
+Conflict Handling
+
+If multiple OMP init lines are present, only the first is kept.
+If a custom prompt function conflicts, back it up and comment it out unless a safety flag is enabled.
+If Oh My Posh is not installed, skip OMP modifications and still update Windows Terminal.
+
+Acceptance Criteria
+
+After running the script:
+The PowerShell profile exists with a single oh-my-posh init line.
+No custom prompt override breaks Oh My Posh.
+The active OMP theme contains "pwd": "osc99" at the root.
+Windows Terminal supports same-directory duplication for splits and tabs.
+Re-running the script produces no changes.
+
+Pseudocode (High-Level)
+Main:
+profile = ensureProfileExists()
+omp = detectOMP()
+if omp found:
+fixProfileOMPInit(profile)
+themePath = extractThemePath(profile)
+userThemePath = ensureThemeIsWritable(themePath)
+fixProfileThemePath(profile, userThemePath)
+updateThemePwd(userThemePath)
+else:
+log "OMP not installed; skipping theme and profile OMP sections"
+terminalSettings = findTerminalSettings()
+if terminalSettings found:
+updateTerminalActions(terminalSettings)
+log "Done"
+Rollback Instructions
+Users revert changes by restoring backup files:
+
+PowerShell_profile.ps1.bak-*
+settings.json.bak-*
+theme.omp.json.bak-*
