@@ -46,9 +46,11 @@ This script configures three things to work together:
 - Comments out duplicate Oh My Posh init lines if present
 
 ### 2. Oh My Posh Theme (if installed)
+- **Checks your Oh My Posh version** and warns if it's older than v3.151.0 (minimum required for `pwd: osc99`)
 - Locates your active theme from the profile
 - Adds `"pwd": "osc99"` to the theme's root JSON object
 - If the theme is in the built-in themes folder, copies it to `%LOCALAPPDATA%\oh-my-posh\themes` first (so updates don't overwrite your changes)
+- Prompts for confirmation if your version is incompatible to prevent breaking your setup
 
 ### 2b. No Oh My Posh? No problem!
 If Oh My Posh isn't installed, the script adds a `prompt` function to your profile that emits the [OSC 9;9 escape sequence](https://learn.microsoft.com/en-us/windows/terminal/tutorials/new-tab-same-directory#powershell-powershellexe-or-pwshexe) directly. This tells Windows Terminal your current directory without needing OMP.
@@ -109,6 +111,7 @@ The `splitMode: duplicate` setting in Windows Terminal keybindings tells it to u
 
 ## Safety Features
 
+- **Version Check**: Detects your Oh My Posh version and warns if it's incompatible (< v3.151.0) before making changes
 - **Backups**: Every modified file gets a timestamped backup (e.g., `settings.json.bak-20240115-143022-789`)
 - **Idempotent**: Safe to run multiple times. Re-running when already configured makes no changes.
 - **Graceful degradation**: If Oh My Posh isn't installed, the script adds an OSC 9;9 prompt function to your profile instead.
@@ -131,7 +134,24 @@ Copy-Item "settings.json.bak-20240115-143022" "settings.json"
 - Windows 11 (or Windows 10 with Windows Terminal)
 - PowerShell 7+ (`pwsh`)
 - Windows Terminal (Store or standalone)
-- Oh My Posh v11+ (optional - script adds fallback prompt if not installed)
+- Oh My Posh v3.151.0+ (optional - script adds fallback prompt if not installed)
+  - **Note**: Current Oh My Posh versions are v11+. The v3.151.0 minimum refers to the feature support for `pwd: osc99`, which was added before the version jump to v11.
+
+### Oh My Posh Version Notice
+
+This script modifies your Oh My Posh theme to add `"pwd": "osc99"`, which requires **Oh My Posh v3.151.0 or newer** (all v11+ versions are supported). If you have an older version, the script will:
+
+1. Detect your current version
+2. Display a warning with upgrade instructions
+3. Ask for confirmation before making changes
+4. Skip Oh My Posh modifications if you decline
+
+To check your version: `oh-my-posh --version`
+
+To update:
+```powershell
+winget upgrade JanDeDobbeleer.OhMyPosh
+```
 
 ## WSL Support
 

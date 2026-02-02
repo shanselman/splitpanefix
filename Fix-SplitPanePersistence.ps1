@@ -120,6 +120,57 @@ function Get-OMPInstalled {
     return $null -ne $omp
 }
 
+function Get-OMPVersion {
+    try {
+        $versionOutput = oh-my-posh --version 2>&1
+        if ($versionOutput -match '(\d+)\.(\d+)\.(\d+)') {
+            return [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
+        }
+        return $null
+    }
+    catch {
+        return $null
+    }
+}
+
+function Test-OMPVersionCompatible {
+    param([version]$CurrentVersion)
+    
+    # Minimum version required for "pwd": "osc99" feature
+    $minVersion = [version]"3.151.0"
+    
+    if ($null -eq $CurrentVersion) {
+        return $false
+    }
+    
+    return $CurrentVersion -ge $minVersion
+}
+
+function Show-OMPVersionWarning {
+    param([version]$CurrentVersion)
+    
+    Write-Host ""
+    Write-Host "  ⚠️  Oh My Posh Version Warning" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Your Oh My Posh version: $CurrentVersion" -ForegroundColor White
+    Write-Host "  Minimum required version: 3.151.0" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  This script will add " -ForegroundColor Gray -NoNewline
+    Write-Host '"pwd": "osc99"' -ForegroundColor Cyan -NoNewline
+    Write-Host " to your Oh My Posh theme." -ForegroundColor Gray
+    Write-Host "  This feature is only supported in Oh My Posh v3.151.0 and newer." -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  If you continue with an outdated version, your Oh My Posh may break!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  To update Oh My Posh (recommended):" -ForegroundColor Cyan
+    Write-Host "    winget upgrade JanDeDobbeleer.OhMyPosh" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  Alternative (download and execute script from ohmyposh.dev):" -ForegroundColor Gray
+    Write-Host "    Set-ExecutionPolicy Bypass -Scope Process -Force; " -ForegroundColor DarkGray -NoNewline
+    Write-Host "Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
 function Get-OMPInitLines {
     param([string]$ProfileContent)
     $pattern = '^\s*oh-my-posh\s+init\s+pwsh\s+--config\s+[''"]?([^''"|\s]+)[''"]?\s*\|\s*Invoke-Expression'
@@ -508,24 +559,63 @@ $ompInstalled = Get-OMPInstalled
 if ($ompInstalled) {
     Write-Log "Oh My Posh detected" -Verbose
     
-    # Step 3: Fix profile OMP init
-    $null = Fix-ProfileOMPInit -ProfilePath $profilePath
+    # Step 2a: Check Oh My Posh version
+    $ompVersion = Get-OMPVersion
+    $versionCompatible = Test-OMPVersionCompatible -CurrentVersion $ompVersion
     
-    # Step 4: Get and ensure writable theme
-    $profileContent = Get-Content $profilePath -Raw
-    $themePath = Get-ThemePathFromProfile -ProfileContent $profileContent
-    Write-Log "Detected theme path: $themePath" -Verbose
+    if ($ompVersion) {
+        Write-Log "Oh My Posh version: $ompVersion" -Verbose
+    }
     
-    if ($themePath) {
-        $writableThemePath = Ensure-ThemeIsWritable -ProfilePath $profilePath -CurrentThemePath $themePath
+    $proceedWithOMP = $true
+    
+    if (-not $versionCompatible) {
+        Show-OMPVersionWarning -CurrentVersion $ompVersion
         
-        # Step 5: Update theme pwd setting
-        if ($writableThemePath) {
-            $null = Update-ThemePwd -ThemePath $writableThemePath
+        # In WhatIf mode, just show the warning and proceed
+        if ($WhatIfPreference) {
+            Write-Host "  [DryRun] Would prompt for confirmation, but continuing in WhatIf mode" -ForegroundColor Gray
+            Write-Host ""
+        }
+        else {
+            # Prompt user for confirmation
+            # Any response other than 'y' or 'Y' (including empty/Enter) is treated as "No" (safe default)
+            $response = Read-Host "Do you want to continue anyway? This may break your Oh My Posh setup. (y/N)"
+            if ($response -notmatch '^[Yy]') {
+                Write-Host ""
+                Write-Host "  Skipping Oh My Posh theme modifications." -ForegroundColor Yellow
+                Write-Host "  Please update Oh My Posh and run this script again." -ForegroundColor Yellow
+                Write-Host ""
+                $proceedWithOMP = $false
+            }
+            else {
+                Write-Host ""
+                Write-Host "  Proceeding with Oh My Posh modifications..." -ForegroundColor Yellow
+                Write-Host ""
+            }
         }
     }
-    else {
-        Write-Log "Could not detect theme path from profile"
+    
+    if ($proceedWithOMP) {
+        # Step 3: Fix profile OMP init
+        $null = Fix-ProfileOMPInit -ProfilePath $profilePath
+        
+        # Step 4: Get and ensure writable theme
+        $profileContent = Get-Content $profilePath -Raw
+        $themePath = Get-ThemePathFromProfile -ProfileContent $profileContent
+        Write-Log "Detected theme path: $themePath" -Verbose
+        
+        if ($themePath) {
+            $writableThemePath = Ensure-ThemeIsWritable -ProfilePath $profilePath -CurrentThemePath $themePath
+            
+            # Step 5: Update theme pwd setting
+            if ($writableThemePath) {
+                $null = Update-ThemePwd -ThemePath $writableThemePath
+            }
+        }
+        else {
+            Write-Log "Could not detect theme path from profile"
+        }
     }
 }
 else {
