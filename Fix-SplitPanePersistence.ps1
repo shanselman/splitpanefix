@@ -602,12 +602,12 @@ if ($ompInstalled) {
         
         # Step 4: Get and ensure writable theme
         $profileContent = Get-Content $profilePath -Raw
-        $themePath = Get-ThemePathFromProfile -ProfileContent $profileContent
-        Write-Log "Detected theme path: $themePath" -Verbose
-        
-        if ($themePath) {
-            $writableThemePath = Ensure-ThemeIsWritable -ProfilePath $profilePath -CurrentThemePath $themePath
-            
+        $detectedThemePath = Get-ThemePathFromProfile -ProfileContent $profileContent
+        Write-Log "Detected theme path: $detectedThemePath" -Verbose
+
+        if ($detectedThemePath) {
+            $writableThemePath = Ensure-ThemeIsWritable -ProfilePath $profilePath -CurrentThemePath $detectedThemePath
+
             # Step 5: Update theme pwd setting
             if ($writableThemePath) {
                 $null = Update-ThemePwd -ThemePath $writableThemePath
