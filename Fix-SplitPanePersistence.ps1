@@ -410,6 +410,8 @@ function Update-TerminalActions {
             $settings['actions'] = @()
         }
         
+        $modified = $false
+        
         # Check if using new format with separate keybindings array
         $useKeybindingsArray = $settings.ContainsKey('keybindings')
         
@@ -438,22 +440,27 @@ function Update-TerminalActions {
             }
         )
         
-        $modified = $false
-        
         # Some TUIs (for example gitui) update the tab title while running.
         # That can interfere with duplicate-tab directory inheritance, so
         # suppress application title changes by default.
         if ($settings.ContainsKey('profiles')) {
             $profiles = $settings['profiles']
             if ($profiles -is [hashtable] -or $profiles -is [System.Collections.Specialized.OrderedDictionary]) {
-                if (-not $profiles.ContainsKey('defaults') -or (-not ($profiles['defaults'] -is [hashtable] -or $profiles['defaults'] -is [System.Collections.Specialized.OrderedDictionary]))) {
+                if (-not $profiles.ContainsKey('defaults')) {
                     $profiles['defaults'] = @{}
                     $modified = $true
                     Write-Log "Added profiles.defaults section" -Verbose
                 }
                 
-                if ($profiles['defaults']['suppressApplicationTitle'] -ne $true) {
-                    $profiles['defaults']['suppressApplicationTitle'] = $true
+                if ($profiles['defaults'] -isnot [hashtable] -and $profiles['defaults'] -isnot [System.Collections.Specialized.OrderedDictionary]) {
+                    $profiles['defaults'] = @{}
+                    $modified = $true
+                    Write-Log "Replaced invalid profiles.defaults section" -Verbose
+                }
+                
+                $profileDefaults = $profiles['defaults']
+                if ($profileDefaults['suppressApplicationTitle'] -ne $true) {
+                    $profileDefaults['suppressApplicationTitle'] = $true
                     $modified = $true
                     Write-Log "Set profiles.defaults.suppressApplicationTitle=true" -Verbose
                 }
