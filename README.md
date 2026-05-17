@@ -57,6 +57,7 @@ If Oh My Posh isn't installed, the script adds a `prompt` function to your profi
 
 ### 3. Windows Terminal Settings
 - Adds or updates keybindings in `settings.json`:
+- Sets `profiles.defaults.suppressApplicationTitle = true` so TUIs that change the tab title (like `gitui`) don't break duplicate-tab directory inheritance.
 
 | Shortcut | Action |
 |----------|--------|
