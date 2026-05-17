@@ -601,7 +601,8 @@ if ($ompInstalled) {
         $null = Fix-ProfileOMPInit -ProfilePath $profilePath
         
         # Step 4: Get and ensure writable theme
-        $profileContent = Get-Content $profilePath -Raw
+        $profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
+        if (-not $profileContent) { $profileContent = "" }
         $themePath = Get-ThemePathFromProfile -ProfileContent $profileContent
         Write-Log "Detected theme path: $themePath" -Verbose
         
@@ -622,7 +623,7 @@ else {
     Write-Log "Oh My Posh not installed - adding OSC 9;9 prompt function"
     
     # Add the prompt function that emits OSC 9;9 for directory tracking
-    $profileContent = Get-Content $profilePath -Raw
+    $profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
     if (-not $profileContent) { $profileContent = "" }
     
     # Check if there's already an OSC 9;9 prompt or the marker
@@ -664,7 +665,8 @@ else {
 
 # Step 7: Add Copilot split function if requested
 if ($Copilot) {
-    $profileContent = Get-Content $profilePath -Raw
+    $profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
+    if (-not $profileContent) { $profileContent = "" }
     if ($profileContent -notmatch 'Split-Copilot') {
         $copilotFunction = @'
 
