@@ -443,26 +443,30 @@ function Update-TerminalActions {
         # Some TUIs (for example gitui) update the tab title while running.
         # That can interfere with duplicate-tab directory inheritance, so
         # suppress application title changes by default.
+        $isDictionaryLike = {
+            param($value)
+            return ($value -is [hashtable] -or $value -is [System.Collections.Specialized.OrderedDictionary])
+        }
+        
         if ($settings.ContainsKey('profiles')) {
             $profiles = $settings['profiles']
-            if ($profiles -is [hashtable] -or $profiles -is [System.Collections.Specialized.OrderedDictionary]) {
+            if (& $isDictionaryLike $profiles) {
                 if (-not $profiles.ContainsKey('defaults')) {
                     $profiles['defaults'] = @{}
                     $modified = $true
                     Write-Log "Added profiles.defaults section" -Verbose
                 }
                 
-                if ($profiles['defaults'] -isnot [hashtable] -and $profiles['defaults'] -isnot [System.Collections.Specialized.OrderedDictionary]) {
-                    $profiles['defaults'] = @{}
-                    $modified = $true
-                    Write-Log "Replaced invalid profiles.defaults section" -Verbose
-                }
-                
                 $profileDefaults = $profiles['defaults']
-                if ($profileDefaults['suppressApplicationTitle'] -ne $true) {
-                    $profileDefaults['suppressApplicationTitle'] = $true
-                    $modified = $true
-                    Write-Log "Set profiles.defaults.suppressApplicationTitle=true" -Verbose
+                if (& $isDictionaryLike $profileDefaults) {
+                    if ($profileDefaults['suppressApplicationTitle'] -ne $true) {
+                        $profileDefaults['suppressApplicationTitle'] = $true
+                        $modified = $true
+                        Write-Log "Set profiles.defaults.suppressApplicationTitle=true" -Verbose
+                    }
+                }
+                else {
+                    Write-Log "profiles.defaults exists but is not an object; skipping suppressApplicationTitle update" -Verbose
                 }
             }
         }
